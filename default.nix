@@ -31,45 +31,46 @@ haskellPackages =
 
 libraries = with pkgsMusl; [
   musl
+  gcc-unwrapped
   zlib zlib.static
   libffi (libffi.override { stdenv = makeStaticLibraries stdenv; })
 ] ++ lib.optionals (!integer-simple) [ gmp (gmp.override { withStatic = true; }) ];
 
 packages = with pkgsMusl; [
   bash coreutils gnused gnugrep gawk
-  binutils binutils-unwrapped
-  gcc pkgconfig automake autoconf
+  gcc-unwrapped binutils-unwrapped
+  pkgconfig automake autoconf
   shadow cacert
 ] ++ [
   haskellPackages.ghc
   (haskell.lib.justStaticExecutables haskellPackages.cabal-install)
 ];
 
-layered = pkgsOrig.dockerTools.buildLayeredImage {
-  name = "${name}-layers";
-  inherit tag;
-  contents = packages ++ libraries;
+base = pkgsOrig.dockerTools.buildImage {
+  name = "base";
+  fromImage = pkgsOrig.dockerTools.pullImage {
+    imageName = "alpine";
+    # tag: 3.11.0
+    imageDigest = "sha256:d371657a4f661a854ff050898003f4cb6c7f36d968a943c1d5cde0952bd93c80";
+    sha256 = "1vihf2h65q9hb13kaf47hqlb1khnyiiz32x7ck11srvjwvqfry4h";
+  };
+  runAsRoot = ''
+    #!${pkgsMusl.stdenv.shell}
+    ${pkgsMusl.dockerTools.shadowSetup}
+  '';
 };
 
 image = pkgsOrig.dockerTools.buildImage {
   inherit name tag;
-  fromImage = layered;
-  runAsRoot = ''
-    #!${pkgsMusl.stdenv.shell}
-    ${pkgsMusl.dockerTools.shadowSetup}
-    mkdir /tmp
-    chmod a=rwx,o+t /tmp
-  '';
   diskSize = 8192;
+  fromImage = base;
   config = {
     Cmd = [ "${pkgsMusl.bash}/bin/sh" ];
     Env = [
-      "PATH=${lib.makeSearchPath "bin" packages}:/bin"
-      "NIX_CC_WRAPPER_x86_64_unknown_linux_musl_TARGET_TARGET=1"
-      "NIX_BINTOOLS_WRAPPER_x86_64_unknown_linux_musl_TARGET_TARGET=1"
-      "LD_LIBRARY_PATH=${lib.makeLibraryPath libraries}"
-      "C_INCLUDE_PATH=${lib.makeSearchPathOutput "dev" "include" libraries}"
-      "NIX_TARGET_LDFLAGS=${lib.concatMapStringsSep " " (s: "-L${lib.getOutput "lib" s}/lib") libraries}"
+      "PATH=${lib.makeSearchPath "bin" packages}:/usr/bin:/bin:/sbin"
+      "LIBRARY_PATH=${lib.makeLibraryPath libraries}:/usr/lib:/lib"
+      "LD_LIBRARY_PATH=${lib.makeLibraryPath libraries}:/usr/lib:/lib"
+      "C_INCLUDE_PATH=${lib.makeSearchPathOutput "dev" "include" libraries}:/usr/include:/include"
     ];
   };
 };
