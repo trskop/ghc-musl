@@ -40,7 +40,7 @@ packages = with pkgsMusl; [
   bash coreutils gnused gnugrep gawk
   gcc-unwrapped binutils-unwrapped
   pkgconfig automake autoconf
-  shadow cacert
+  shadow cacert wget
 ] ++ [
   haskellPackages.ghc
   (haskell.lib.justStaticExecutables haskellPackages.cabal-install)
