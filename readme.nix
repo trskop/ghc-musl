@@ -56,8 +56,8 @@ Stackage resolver you are using.
 
 ## Development
 
-Images are generated using Nix. Building an image requires a Linux
-machine with KVM support.
+Images are generated using Nix on top of alpine. Building an image
+requires a Linux machine with KVM support.
 
 Musl-compiled GHC and libraries are not in official NixOS cache, so
 prepare to build a lot. To speed it up, you can use the cache I maintain
