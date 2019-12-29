@@ -29,16 +29,24 @@ haskellPackages =
   };
 };
 
+gcc_sys = pkgsMusl.gcc-unwrapped.override {
+  noSysDirs = false;
+};
+
+binutils_sys = pkgsMusl.binutils-unwrapped.override {
+  noSysDirs = false;
+};
+
 libraries = with pkgsMusl; [
   musl
-  gcc-unwrapped
+  gcc_sys
   zlib zlib.static
   libffi (libffi.override { stdenv = makeStaticLibraries stdenv; })
 ] ++ lib.optionals (!integer-simple) [ gmp (gmp.override { withStatic = true; }) ];
 
 packages = with pkgsMusl; [
   bash coreutils gnused gnugrep gawk
-  gcc-unwrapped binutils-unwrapped
+  gcc_sys binutils_sys
   pkgconfig automake autoconf
   shadow cacert wget
 ] ++ [
