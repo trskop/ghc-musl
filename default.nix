@@ -29,24 +29,13 @@ haskellPackages =
   };
 };
 
-gcc_sys = pkgsMusl.gcc-unwrapped.override {
-  noSysDirs = false;
-};
-
-binutils_sys = pkgsMusl.binutils-unwrapped.override {
-  noSysDirs = false;
-};
-
 libraries = with pkgsMusl; [
   musl
-  gcc_sys
-  zlib zlib.static
   libffi (libffi.override { stdenv = makeStaticLibraries stdenv; })
 ] ++ lib.optionals (!integer-simple) [ gmp (gmp.override { withStatic = true; }) ];
 
 packages = with pkgsMusl; [
   bash coreutils gnused gnugrep gawk
-  gcc_sys binutils_sys
   pkgconfig automake autoconf
   shadow cacert wget
 ] ++ [
@@ -57,15 +46,11 @@ packages = with pkgsMusl; [
 base = pkgsOrig.dockerTools.buildImage {
   name = "base";
   fromImage = pkgsOrig.dockerTools.pullImage {
-    imageName = "alpine";
-    # tag: 3.11.0
-    imageDigest = "sha256:d371657a4f661a854ff050898003f4cb6c7f36d968a943c1d5cde0952bd93c80";
-    sha256 = "1vihf2h65q9hb13kaf47hqlb1khnyiiz32x7ck11srvjwvqfry4h";
+    imageName = "utdemir/ghc-musl";
+    # tag: base-v1
+    imageDigest = "sha256:d8126c95906c96e8ea2792ee243c80a0d2e3f908784fbb3928e964d332eafd0c";
+    sha256 = "0yx9h7dq9yjfwwk8wr0n3x03xiragc3zlj86h8cgifa05yj0wsiz";
   };
-  runAsRoot = ''
-    #!${pkgsMusl.stdenv.shell}
-    ${pkgsMusl.dockerTools.shadowSetup}
-  '';
 };
 
 image = pkgsOrig.dockerTools.buildImage {
