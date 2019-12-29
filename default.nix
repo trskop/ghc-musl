@@ -29,41 +29,36 @@ haskellPackages =
   };
 };
 
-libraries = with pkgsMusl; [
-  musl
-  libffi (libffi.override { stdenv = makeStaticLibraries stdenv; })
-] ++ lib.optionals (!integer-simple) [ gmp (gmp.override { withStatic = true; }) ];
+ghc = haskellPackages.ghc.overrideDerivation (su: {
+  postInstall = ''
+    ${su.postInstall}
+    for i in "$out/bin/"*; do
+      test ! -h $i || continue
+      egrep --quiet '^#!' <(head -n 1 $i) || continue
+      sed -i -e '/^export PATH/d' $i
+    done
+  '';
+});
 
-packages = with pkgsMusl; [
-  bash coreutils gnused gnugrep gawk
-  pkgconfig automake autoconf
-  shadow cacert wget
-] ++ [
-  haskellPackages.ghc
+packages = [
+  ghc
   (haskell.lib.justStaticExecutables haskellPackages.cabal-install)
 ];
 
-base = pkgsOrig.dockerTools.buildImage {
-  name = "base";
-  fromImage = pkgsOrig.dockerTools.pullImage {
-    imageName = "utdemir/ghc-musl";
-    # tag: base-v1
-    imageDigest = "sha256:d8126c95906c96e8ea2792ee243c80a0d2e3f908784fbb3928e964d332eafd0c";
-    sha256 = "0yx9h7dq9yjfwwk8wr0n3x03xiragc3zlj86h8cgifa05yj0wsiz";
-  };
+base = pkgsOrig.dockerTools.pullImage {
+  imageName = "utdemir/ghc-musl";
+  # tag: base-v1
+  imageDigest = "sha256:4a9a672359ad7fa272af3cc5c9f010beedddef6d57bb79f790da729bfa10dcdd";
+  sha256 = "0cixs4p36mj56k0jlrwbqv37chhq4nklmi9r5qs8fpgg1xabnx07";
 };
 
 image = pkgsOrig.dockerTools.buildImage {
   inherit name tag;
-  diskSize = 8192;
   fromImage = base;
   config = {
     Cmd = [ "${pkgsMusl.bash}/bin/sh" ];
     Env = [
-      "PATH=${lib.makeSearchPath "bin" packages}:/usr/bin:/bin:/sbin"
-      "LIBRARY_PATH=${lib.makeLibraryPath libraries}:/usr/lib:/lib"
-      "LD_LIBRARY_PATH=${lib.makeLibraryPath libraries}:/usr/lib:/lib"
-      "C_INCLUDE_PATH=${lib.makeSearchPathOutput "dev" "include" libraries}:/usr/include:/include"
+      "PATH=/usr/bin:/bin:/sbin:${lib.makeSearchPath "bin" packages}"
     ];
   };
 };

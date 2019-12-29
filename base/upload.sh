@@ -10,7 +10,7 @@ fi
 
 set -o xtrace
 
-res="utdemir/ghc-musl:$tag"
+res="utdemir/ghc-musl:base-$tag"
 
 im="$(docker build -q .)"
 docker tag "$im" "$res"

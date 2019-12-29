@@ -10,4 +10,5 @@ RUN apk add \
   libmagic \
   libstdc++ \
   make \
-  musl-dev
+  musl-dev \
+  wget
